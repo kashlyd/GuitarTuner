@@ -3,45 +3,83 @@ package com.example.guitartuner
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
-import com.example.guitartuner.ui.theme.GuitarTunerTheme
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.text.font.FontWeight
+import androidx.navigation.compose.*
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
         setContent {
-            GuitarTunerTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting(
-                        name = "Android",
-                        modifier = Modifier.padding(innerPadding)
-                    )
-                }
+            MaterialTheme {
+                GuitarTunerApp()
             }
         }
     }
 }
 
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
+sealed class Screen(val route: String, val label: String, val emoji: String) {
+    object Tuner : Screen("tuner", "Tuner", "🎛")
+    object Standards : Screen("standards", "Standards", "⚙")
+    object Presets : Screen("presets", "Presets", "🎸")
 }
 
-@Preview(showBackground = true)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun GreetingPreview() {
-    GuitarTunerTheme {
-        Greeting("Android")
+fun GuitarTunerApp() {
+    val navController = rememberNavController()
+    val items = listOf(Screen.Tuner, Screen.Standards, Screen.Presets)
+    val backStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = backStackEntry?.destination?.route
+
+    Scaffold(
+        topBar = {
+            CenterAlignedTopAppBar(
+                title = {
+                    Text(
+                        text = "Guitar Tuner",
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            )
+        },
+        bottomBar = {
+            NavigationBar {
+                items.forEach { screen ->
+                    NavigationBarItem(
+                        selected = currentRoute == screen.route,
+                        onClick = {
+                            navController.navigate(screen.route) {
+                                popUpTo(navController.graph.startDestinationId) {
+                                    saveState = true
+                                }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
+                        },
+                        icon = { Text(screen.emoji) },
+                        label = { Text(screen.label) }
+                    )
+                }
+            }
+        }
+    ) { innerPadding ->
+        NavHost(
+            navController = navController,
+            startDestination = Screen.Tuner.route
+        ) {
+            composable(Screen.Tuner.route) {
+                TunerScreen(innerPadding)
+            }
+            composable(Screen.Standards.route) {
+                StandardsScreen(innerPadding)
+            }
+            composable(Screen.Presets.route) {
+                PresetsScreen(innerPadding)
+            }
+        }
     }
 }
